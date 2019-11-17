@@ -26,6 +26,11 @@
 #include <webserver/WebServer.h>
 #include "hyperiond.h"
 
+#ifdef ENABLE_AMLOGIC
+#include <QtPlugin>
+Q_IMPORT_PLUGIN(QGifPlugin)
+#endif
+
 // Flatbuffer Server
 #ifdef ENABLE_FLATBUF_SERVER
 #include <flatbufserver/FlatBufferServer.h>

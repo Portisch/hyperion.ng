@@ -12,3 +12,9 @@ target_link_libraries(database
 	hyperion-utils
 	Qt${QT_VERSION_MAJOR}::Sql
 )
+
+if (ENABLE_AMLOGIC)
+	target_link_libraries(database
+		${plugin_libs}
+	)
+endif()
