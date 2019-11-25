@@ -7,6 +7,9 @@
 
 #include <QFileInfo>
 #include <time.h>
+#include <QTime>
+#include <QFile>
+#include <QTextStream>
 
 static const char * LogLevelStrings[]   = { "", "DEBUG", "INFO", "WARNING", "ERROR" };
 static const int    LogLevelSysLog[]    = { LOG_DEBUG, LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR };
@@ -184,12 +187,19 @@ void Logger::Message(LogLevel level, const char* sourceFile, const char* func, u
 			location = "<" + logMsg.fileName + ":" + QString::number(line)+":"+ logMsg.function + "()> ";
 		}
 
-		std::cout << QString("[" + _appname + " " + _name + "] <" + LogLevelStrings[level] + "> " + location + msg).toStdString() << std::endl;
+		std::cout << QString("[" + QTime::currentTime().toString() + " " + _appname + " " + _name + "] <" + LogLevelStrings[level] + "> " + location + msg).toStdString() << std::endl;
 
 		if ( _syslogEnabled && level >= Logger::WARNING )
 			syslog (LogLevelSysLog[level], "%s", msg);
 
 		_repeatMessage = logMsg;
+
+		QFile file("/storage/backup/hyperiond.log");
+		if (!file.open(QIODevice::WriteOnly | QIODevice::Append))
+			return;
+
+		QTextStream out(&file);
+		out << QString("[" + QTime::currentTime().toString() + " " + _appname + " " + _name + "] <" + LogLevelStrings[level] + "> " + location + msg) << "\n";
 	}
 }
 

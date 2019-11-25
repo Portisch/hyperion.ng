@@ -265,11 +265,11 @@ int main(int argc, char** argv)
 		logLevelCheck++;
 	}
 
-	if (parser.isSet(debugOption))
-	{
+	//if (parser.isSet(debugOption))
+	//{
 		Logger::setLogLevel(Logger::DEBUG);
-		logLevelCheck++;
-	}
+	//	logLevelCheck++;
+	//}
 
 	if (logLevelCheck > 1)
 	{
