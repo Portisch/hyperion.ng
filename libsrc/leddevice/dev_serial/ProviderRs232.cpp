@@ -51,7 +51,8 @@ bool ProviderRs232::init(const QJsonObject &deviceConfig)
 
 void ProviderRs232::close()
 {
-	LedDevice::close();
+	if (!_deviceReady)
+		LedDevice::close();
 
 	// LedDevice specific closing activites
 	closeDevice();
