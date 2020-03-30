@@ -23,9 +23,6 @@ public:
 
 	virtual bool init(const QJsonObject &deviceConfig) override;
 
-public slots:
-	void receivedData(QByteArray data);
-
 private:
 	///
 	/// Writes the led color values to the led-device

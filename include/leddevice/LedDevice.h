@@ -213,9 +213,6 @@ protected slots:
 	///
 	int rewriteLeds();
 
-
-
-
 	/// Set device in error state
 	///
 	/// @param errorMsg The error message to be logged
@@ -231,7 +228,6 @@ private:
 	/// Stop refresh cycle
 	///
 	void stopRefreshTimer();
-
 
 	bool	_componentRegistered;
 

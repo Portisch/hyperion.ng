@@ -47,18 +47,6 @@ public slots:
 	///
 	virtual void stop() override;
 
-private slots:
-
-	/// Unblock the device after a connection delay
-	void writeTimeout();
-	void unblockAfterDelay();
-	void error(QSerialPort::SerialPortError setInError);
-	void bytesWritten(qint64 bytes);
-	void readyRead();
-
-signals:
-	void receivedData(QByteArray data);
-
 protected:
 	/**
 	 * Writes the given bytes to the RS232-device and
@@ -84,35 +72,27 @@ protected:
 	///
 	virtual int close() override;
 
+	/// Set device in error state
+	///
+	/// @param errorMsg The error message to be logged
+	///
+	virtual void setInError( const QString& errorMsg) override;
+
 	QString findSerialDevice();
 
 	// tries to open device if not opened
 	bool tryOpen(const int delayAfterConnect_ms);
 
-
 	/// The name of the output device
 	QString _deviceName;
-
+	/// The RS232 serial-device
+	QSerialPort _rs232Port;
 	/// The used baudrate of the output device
 	qint32 _baudRate_Hz;
 
 	/// Sleep after the connect before continuing
 	int _delayAfterConnect_ms;
 
-	/// The RS232 serial-device
-	QSerialPort _rs232Port;
-
-	/// A timeout timer for the asynchronous connection
-	QTimer _writeTimeout;
-
-	bool _blockedForDelay;
-	
-	bool _stateChanged;
-
-	qint64 _bytesToWrite;
 	qint64 _frameDropCounter;
-	QSerialPort::SerialPortError _lastError;
-	qint64                       _preOpenDelayTimeOut;
-	int                          _preOpenDelay;
-	bool                         _enableAutoDeviceName;
+	bool _enableAutoDeviceName;
 };
