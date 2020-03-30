@@ -34,7 +34,7 @@ public slots:
 	/// Closes the output device.
 	/// Includes switching-off the device and stopping refreshes
 	///
-	virtual void close() override;
+	virtual int close() override;
 
 protected:
 	///

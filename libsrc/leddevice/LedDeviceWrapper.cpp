@@ -58,7 +58,7 @@ void LedDeviceWrapper::createLedDevice(const QJsonObject& config)
 	connect(this, &LedDeviceWrapper::updateLeds, _ledDevice, &LedDevice::updateLeds, Qt::QueuedConnection);
 	connect(this, &LedDeviceWrapper::setEnable, _ledDevice, &LedDevice::setEnable);
 
-	connect(this, &LedDeviceWrapper::closeLedDevice, _ledDevice, &LedDevice::close, Qt::BlockingQueuedConnection);
+	connect(this, &LedDeviceWrapper::closeLedDevice, _ledDevice, &LedDevice::stop, Qt::BlockingQueuedConnection);
 
 	connect(_ledDevice, &LedDevice::enableStateChanged, this, &LedDeviceWrapper::handleInternalEnableState, Qt::QueuedConnection);
 
@@ -133,10 +133,17 @@ unsigned int LedDeviceWrapper::getLedCount() const
 	return _ledDevice->getLedCount();
 }
 
+const bool & LedDeviceWrapper::enabled()
+{
+	//std::cout << "[hyperiond LedDeviceWrapper] LedDeviceWrapper::enabled, _enabled [" << _enabled << "]" << std::endl;
+	return _enabled;
+}
+
 void LedDeviceWrapper::handleComponentState(const hyperion::Components component, const bool state)
 {
 	if(component == hyperion::COMP_LEDDEVICE)
 	{
+		std::cout << "[hyperiond LedDeviceWrapper] LedDeviceWrapper::handleComponentState, state [" << state << "]" << std::endl;
 		emit setEnable(state);
 
 		//Get device's state, considering situations where it is not ready
@@ -148,6 +155,7 @@ void LedDeviceWrapper::handleComponentState(const hyperion::Components component
 
 void LedDeviceWrapper::handleInternalEnableState(bool newState)
 {
+	std::cout << "[hyperiond LedDeviceWrapper] LedDeviceWrapper::handleInternalEnableState, newState [" << newState << "]" << std::endl;
 	_hyperion->setNewComponentState(hyperion::COMP_LEDDEVICE, newState);
 	_enabled = newState;
 }

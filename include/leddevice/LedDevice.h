@@ -59,7 +59,9 @@ public:
 	unsigned int getLedCount() const { return _ledCount; }
 
 	bool enabled() const { return _enabled; }
+
 	int getLatchTime() const { return _latchTime_ms; }
+	void setLatchTime( int latchTime_ms );
 
 	///
 	/// Check, if device is ready to be used
@@ -89,7 +91,13 @@ public slots:
 	///
 	/// Is called on thread start, all construction tasks and init should run here
 	///
-	virtual void start() { _deviceReady = (open() == 0 ? true : false);}
+	virtual void start();
+
+	///
+	/// Stops the output device.
+	/// Includes switching-off the device and stopping refreshes
+	///
+	virtual void stop();
 
 	///
 	/// Update the RGB-Color values to the leds.
@@ -100,11 +108,6 @@ public slots:
 	///
 	virtual int updateLeds(const std::vector<ColorRgb>& ledValues);
 
-	///
-	/// Closes the output device.
-	/// Includes switching-off the device and stopping refreshes
-	///
-	virtual void close();
 
 	///
 	/// Enables/disables the device for output.
@@ -132,13 +135,19 @@ protected:
 	virtual bool init(const QJsonObject &deviceConfig);
 
 	///
-	/// Opens and initiatialises the output device
+	/// Opens the output device
 	///
-	/// @return Zero on succes (i.e. device is ready and enabled) else negative
+	/// @return Zero on succes (i.e. device is ready) else negative
 	///
 	virtual int open();
 
 	///
+	/// Closes the output device.
+	///
+	/// @return Zero on succes (i.e. device is closed) else negative
+	///
+	virtual int close();
+
 	/// Writes the RGB-Color values to the leds.
 	///
 	/// @param[in] ledValues  The RGB-color per led
@@ -153,6 +162,17 @@ protected:
 	/// @return Zero on success else negative
 	///
 	virtual int writeBlack();
+
+	///
+	/// Switch the leds off
+	/// Writes "Black to LED" or may switch-off the LED hardware, if supported
+	///
+	virtual bool switchOff();
+
+	/// Switch the leds on
+	/// May switch-on the LED hardware, if supported
+	///
+	virtual bool switchOn();
 
 	// Helper to pipe device config from constructor to start()
 	QJsonObject _devConfig;
@@ -183,6 +203,7 @@ protected:
 	/// Time a device requires mandatorily between two writes
 	int		_latchTime_ms;
 
+	bool	_enabled;
 
 protected slots:
 
@@ -192,15 +213,8 @@ protected slots:
 	///
 	int rewriteLeds();
 
-	/// Switch the leds off
-	/// Writes "Black to LED" or may switch-off the LED hardware, if supported
-	///
-	virtual int switchOff();
 
-	/// Switch the leds on
-	/// May switch-on the LED hardware, if supported
-	///
-	virtual int switchOn();
+
 
 	/// Set device in error state
 	///
@@ -220,7 +234,7 @@ private:
 
 
 	bool	_componentRegistered;
-	bool	_enabled;
+
 	bool	_refresh_enabled;
 	QString	_colorOrder;
 

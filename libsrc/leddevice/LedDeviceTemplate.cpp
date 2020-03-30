@@ -67,7 +67,7 @@ int LedDeviceTemplate::open()
 	return retval;
 }
 
-void LedDeviceTemplate::close()
+int LedDeviceTemplate::close()
 {
 	LedDevice::close();
 

@@ -117,7 +117,7 @@ int ProviderUdp::open()
 	return retval;
 }
 
-void ProviderUdp::close()
+int ProviderUdp::close()
 {
 	LedDevice::close();
 

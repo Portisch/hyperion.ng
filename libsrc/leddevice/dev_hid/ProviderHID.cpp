@@ -110,7 +110,7 @@ int ProviderHID::open()
 	return retval;
 }
 
-void ProviderHID::close()
+int ProviderHID::close()
 {
 	LedDevice::close();
 

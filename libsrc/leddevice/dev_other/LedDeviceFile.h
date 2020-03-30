@@ -37,11 +37,7 @@ public:
 	virtual bool init(const QJsonObject &deviceConfig) override;
 
 public slots:
-	///
-	/// Closes the output device.
-	/// Includes switching-off the device and stopping refreshes
-	///
-	virtual void close() override;
+
 	
 protected:
 	///
@@ -50,6 +46,12 @@ protected:
 	/// @return Zero on succes (i.e. device is ready and enabled) else negative
 	///
 	virtual int open() override;
+
+	///
+	/// Closes the output device.
+	/// Includes switching-off the device and stopping refreshes
+	///
+	virtual int close() override;
 
 	///
 	/// Writes the given led-color values to the output stream

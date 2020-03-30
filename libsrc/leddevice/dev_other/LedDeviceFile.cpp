@@ -6,6 +6,7 @@
 
 LedDeviceFile::LedDeviceFile(const QJsonObject &deviceConfig)
 	: LedDevice()
+	, _ofs (nullptr)
 {
 	_devConfig = deviceConfig;
 	_deviceReady = false;
@@ -23,60 +24,62 @@ LedDevice* LedDeviceFile::construct(const QJsonObject &deviceConfig)
 
 bool LedDeviceFile::init(const QJsonObject &deviceConfig)
 {
+	Debug(_log, "LedDeviceFile::init()");
 	bool initOK = LedDevice::init(deviceConfig);
 
 	_fileName = deviceConfig["output"].toString("/dev/null");
 	_printTimeStamp = deviceConfig["printTimeStamp"].toBool(false);
 
+	Debug(_log, "LedDeviceFile::init() [%d]", initOK);
 	return initOK;
 }
 
 int LedDeviceFile::open()
 {
+	Debug(_log, "LedDeviceFile::open()");
 	int retval = -1;
 	QString errortext;
 	_deviceReady = false;
 
-	if ( init(_devConfig) )
+	// open device physically
+	_ofs.open( QSTRING_CSTR(_fileName));
+	if ( _ofs.fail() )
 	{
-		if ( _ofs.is_open() )
-		{
-			_ofs.close();
-		}
-
-		_ofs.open( QSTRING_CSTR(_fileName));
-		if ( _ofs.fail() )
-		{
-			errortext = QString ("Failed to open file (%1). Error message: %2").arg(_fileName, strerror(errno));
-		}
-		else
-		{
-			_deviceReady = true;
-			setEnable(true);
-			retval = 0;
-		}
-
-		if ( retval < 0 )
-		{
-			this->setInError( errortext );
-		}
+		errortext = QString ("Failed to open file (%1). Error message: %2").arg(_fileName, strerror(errno));
 	}
+	else
+	{
+		_deviceReady = true;
+		retval = 0;
+	}
+
+	if ( retval < 0 )
+	{
+		this->setInError( errortext );
+	}
+
+	Debug(_log, "LedDeviceFile::open() [%d]", retval);
 	return retval;
 }
 
-void LedDeviceFile::close()
+int LedDeviceFile::close()
 {
-	LedDevice::close();
+	Debug(_log, "LedDeviceFile::close()");
+	int retval = 0;
 
-	// LedDevice specific closing activites
+	_deviceReady = false;
+	// Test, if device requies closing
 	if ( _ofs )
 	{
+		// close device physically
 		_ofs.close();
 		if ( _ofs.fail() )
 		{
 			Error( _log, "Failed to close device (%s). Error message: %s", QSTRING_CSTR(_fileName), strerror(errno) );
 		}
 	}
+	Debug(_log, "LedDeviceFile::close() [%d]", retval);
+	return retval;
 }
 
 int LedDeviceFile::write(const std::vector<ColorRgb> & ledValues)

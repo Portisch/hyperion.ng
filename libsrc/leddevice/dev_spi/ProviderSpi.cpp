@@ -93,7 +93,7 @@ int ProviderSpi::open()
 			}
 			if ( retval < 0 )
 			{
-				errortext = QString ("Failed to open device (%1). Error Code: %2").arg(_deviceName, retval);
+				errortext = QString ("Failed to open device (%1). Error Code: %2").arg(_deviceName).arg(retval);
 			}
 		}
 
@@ -106,7 +106,7 @@ int ProviderSpi::open()
 	return retval;
 }
 
-void ProviderSpi::close()
+int ProviderSpi::close()
 {
 	LedDevice::close();
 

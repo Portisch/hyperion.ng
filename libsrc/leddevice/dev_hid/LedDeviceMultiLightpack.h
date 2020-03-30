@@ -33,7 +33,7 @@ public:
 	static LedDevice* construct(const QJsonObject &deviceConfig);
 
 	///
-	virtual int switchOff() override;
+	virtual bool switchOff() override;
 
 protected:
 	///

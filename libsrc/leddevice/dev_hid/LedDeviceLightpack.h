@@ -65,7 +65,7 @@ public:
 	///
 	/// @return Zero on success else negative
 	///
-	virtual int switchOff() override;
+	virtual bool switchOff() override;
 
 	/// Get the serial of the Lightpack
 	const QString & getSerialNumber() const;
@@ -75,7 +75,7 @@ public slots:
 	/// Closes the output device.
 	/// Includes switching-off the device and stopping refreshes
 	///
-	virtual void close() override;
+	virtual int close() override;
 
 protected:
 

@@ -100,7 +100,7 @@ int LedDeviceFadeCandy::open()
 	return retval;
 }
 
-void LedDeviceFadeCandy::close()
+int LedDeviceFadeCandy::close()
 {
 	LedDevice::close();
 

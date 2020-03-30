@@ -35,9 +35,15 @@ ProviderRs232::ProviderRs232()
 
 bool ProviderRs232::init(const QJsonObject &deviceConfig)
 {
-	closeDevice();
+	Debug(_log, "ProviderRs232::init");
 
 	bool isInitOK = LedDevice::init(deviceConfig);
+
+	Debug(_log, "DeviceType   : %s", QSTRING_CSTR( this->getActiveDeviceType() ));
+	Debug(_log, "LedCount     : %u", this->getLedCount());
+	Debug(_log, "ColorOrder   : %s", QSTRING_CSTR( this->getColorOrder() ));
+	Debug(_log, "RefreshTime  : %d", _refresh_timer_interval);
+	Debug(_log, "LatchTime    : %d", this->getLatchTime());
 
 	_deviceName           = deviceConfig["output"].toString("auto");
 	_enableAutoDeviceName = _deviceName == "auto";
@@ -45,20 +51,78 @@ bool ProviderRs232::init(const QJsonObject &deviceConfig)
 	_delayAfterConnect_ms = deviceConfig["delayAfterConnect"].toInt(1500);
 	_preOpenDelay         = deviceConfig["delayBeforeConnect"].toInt(1500);
 
+	Debug(_log, "deviceName   : %s", QSTRING_CSTR(_deviceName));
+	Debug(_log, "enAutoDevice : %d", _enableAutoDeviceName);
+	Debug(_log, "baudRate_Hz  : %d", _baudRate_Hz);
+	Debug(_log, "delayAfCon ms: %d", _delayAfterConnect_ms);
+	Debug(_log, "preOpenDelay : %d", _preOpenDelay);
+
+	Debug(_log, "ProviderRs232::init() [%d]", isInitOK);
 	return isInitOK;
 }
 
-
-void ProviderRs232::close()
+ProviderRs232::~ProviderRs232()
 {
-	LedDevice::close();
+	disconnect(&_rs232Port, SIGNAL(error(QSerialPort::SerialPortError)), this, SLOT(error(QSerialPort::SerialPortError)));
+}
 
-	// LedDevice specific closing activites
-	closeDevice();
+int ProviderRs232::open()
+{
+	Debug(_log, "ProviderRs232::open()");
+	int retval = -1;
+	_deviceReady = false;
+
+	// open device physically
+	if ( tryOpen(_delayAfterConnect_ms) )
+	{
+		// Everything is OK -> enable device
+		_deviceReady = true;
+		//_enabled = true;
+		retval = 0;
+	}
+	else
+	{
+		this->setInError( "Error opening device!" );
+	}
+
+	Debug(_log, "ProviderRs232::open() [%d]", retval);
+	return retval;
+}
+
+int ProviderRs232::close()
+{
+	Debug(_log, "ProviderRs232::close()");
+	int retval = 0;
+
+	_deviceReady = false;
+
+	_writeTimeout.stop();
+
+	// Test, if device requies closing
+	if (_rs232Port.isOpen())
+	{
+		Debug(_log,"Close UART: %s", _deviceName.toLocal8Bit().constData());
+		_rs232Port.close();
+		// Everything is OK -> device is closed
+	}
+	_stateChanged = true;
+	_bytesToWrite = 0;
+	_blockedForDelay = false;
+
+	Debug(_log, "ProviderRs232::close() [%d]", retval);
+	return retval;
+}
+
+void ProviderRs232::stop()
+{
+	Debug(_log, "ProviderRs232::stop()");
+	LedDevice::stop();
+	Debug(_log, "ProviderRs232::stop() [void]");
 }
 
 QString ProviderRs232::findSerialDevice()
 {
+	Debug(_log, "ProviderRs232::findSerialDevice()");
 	// take first available usb serial port - currently no probing!
 	for( auto port : QSerialPortInfo::availablePorts())
 	{
@@ -71,8 +135,75 @@ QString ProviderRs232::findSerialDevice()
 	return "";
 }
 
+bool ProviderRs232::tryOpen(const int delayAfterConnect_ms)
+{
+	Debug(_log, "ProviderRs232::tryOpen");
+	if (_deviceName.isEmpty() || _rs232Port.portName().isEmpty())
+	{
+		if ( _enableAutoDeviceName )
+		{
+			_deviceName = findSerialDevice();
+			if ( _deviceName.isEmpty() )
+			{
+				return false;
+			}
+		}
+		Info(_log, "Opening UART: %s", _deviceName.toLocal8Bit().constData());
+		_rs232Port.setPortName(_deviceName);
+	}
+
+	if ( ! _rs232Port.isOpen() )
+	{
+		Debug(_log, "! _rs232Port.isOpen(): %s", _deviceName.toLocal8Bit().constData());
+		_frameDropCounter = 0;
+
+		if (QFile::exists(_deviceName))
+		{
+			if ( _preOpenDelayTimeOut > QDateTime::currentMSecsSinceEpoch() )
+			{
+				Debug(_log, "_preOpenDelayTimeOut > QDateTime::currentMSecsSinceEpoch(): %s", _deviceName.toLocal8Bit().constData());
+				return false;
+			}
+			Debug(_log, "_rs232Port.open(QIODevice::WriteOnly): %s, _stateChanged [%d]", _deviceName.toLocal8Bit().constData(), _stateChanged);
+			//if ( ! _rs232Port.open(QIODevice::ReadWrite) )
+			if ( ! _rs232Port.open(QIODevice::WriteOnly) )
+			{
+				if ( _stateChanged )
+				{
+					Error(_log, "Unable to open RS232 device (%s)", _deviceName.toLocal8Bit().constData());
+					_stateChanged = false;
+				}
+				return false;
+			}
+			Debug(_log, "Setting baud rate to %d", _baudRate_Hz);
+			if ( _rs232Port.setBaudRate(_baudRate_Hz) )
+			{
+				Debug(_log, "Connected to port: (%s)", QSTRING_CSTR(_rs232Port.portName()) );
+			}
+			_stateChanged = true;
+			_preOpenDelayTimeOut = 0;
+		}
+		else
+		{
+			Debug(_log, "QFile does NOT exists: %s", _deviceName.toLocal8Bit().constData());
+			_preOpenDelayTimeOut = QDateTime::currentMSecsSinceEpoch() + _preOpenDelay;
+			return false;
+		}
+	}
+
+	if (delayAfterConnect_ms > 0)
+	{
+		_blockedForDelay = true;
+		QTimer::singleShot(delayAfterConnect_ms, this, SLOT(unblockAfterDelay()));
+		Debug(_log, "Device blocked for %d ms", delayAfterConnect_ms);
+	}
+
+	return _rs232Port.isOpen();
+}
+
 void ProviderRs232::bytesWritten(qint64 bytes)
 {
+	Debug(_log, "ProviderRs232::bytesWritten: _bytesToWrite [%d], bytes [%d]", _bytesToWrite, bytes);
 	_bytesToWrite -= bytes;
 	if (_bytesToWrite <= 0)
 	{
@@ -81,13 +212,25 @@ void ProviderRs232::bytesWritten(qint64 bytes)
 	}
 }
 
-
 void ProviderRs232::readyRead()
 {
-	emit receivedData(_rs232Port.readAll());
-	//Debug(_log, "received data");
-}
+	Debug(_log, "readyRead signaled");
 
+	Debug(_log, "_rs232Port.bytesAvailable(): [%d]",_rs232Port.bytesAvailable());
+
+	Debug(_log, "_rs232Port.isOpen(): [%d]", _rs232Port.isOpen() );
+
+	QByteArray data = _rs232Port.readAll();
+
+	Debug(_log, "_rs232Port.isOpen(): [%d]", _rs232Port.isOpen() );
+
+	if ( !data.isEmpty() )
+	{
+
+		Debug(_log, "emit receivedData(data)");
+		emit receivedData(data);
+	}
+}
 
 void ProviderRs232::error(QSerialPort::SerialPortError error)
 {
@@ -132,119 +275,21 @@ void ProviderRs232::error(QSerialPort::SerialPortError error)
 			}
 			_rs232Port.clearError();
 			this->setInError( "Rs232 SerialPortError, see details in previous log lines!" );
-			closeDevice();
+			Debug(_log, "ProviderRs232::error, Call close()");
+			this->close();
 		}
 	}
 }
-
-ProviderRs232::~ProviderRs232()
-{
-	disconnect(&_rs232Port, SIGNAL(error(QSerialPort::SerialPortError)), this, SLOT(error(QSerialPort::SerialPortError)));
-}
-
-void ProviderRs232::closeDevice()
-{
-	_writeTimeout.stop();
-
-	if (_rs232Port.isOpen())
-	{
-		_rs232Port.close();
-		Debug(_log,"Close UART: %s", _deviceName.toLocal8Bit().constData());
-	}
-
-	_stateChanged = true;
-	_bytesToWrite = 0;
-	_blockedForDelay = false;
-	_deviceReady = false;
-}
-
-int ProviderRs232::open()
-{
-	int retval = -1;
-	_deviceReady = false;
-
-	// General initialisation and configuration of LedDevice
-	if ( init(_devConfig) )
-	{
-		if ( tryOpen(_delayAfterConnect_ms) )
-		{
-			// Everything is OK -> enable device
-			_deviceReady = true;
-			setEnable(true);
-			retval = 0;
-		}
-		else
-		{
-			this->setInError( "Error opening device!" );
-		}
-
-	}
-	return retval;
-}
-
-bool ProviderRs232::tryOpen(const int delayAfterConnect_ms)
-{
-	if (_deviceName.isEmpty() || _rs232Port.portName().isEmpty())
-	{
-		if ( _enableAutoDeviceName )
-		{
-			_deviceName = findSerialDevice();
-			if ( _deviceName.isEmpty() )
-			{
-				return false;
-			}
-		}
-		Info(_log, "Opening UART: %s", _deviceName.toLocal8Bit().constData());
-		_rs232Port.setPortName(_deviceName);
-	}
-
-	if ( ! _rs232Port.isOpen() )
-	{
-		_frameDropCounter = 0;
-		if (QFile::exists(_deviceName))
-		{
-			if ( _preOpenDelayTimeOut > QDateTime::currentMSecsSinceEpoch() )
-			{
-				return false;
-			}
-			if ( ! _rs232Port.open(QIODevice::ReadWrite) )
-			{
-				if ( _stateChanged )
-				{
-					Error(_log, "Unable to open RS232 device (%s)", _deviceName.toLocal8Bit().constData());
-					_stateChanged = false;
-				}
-				return false;
-			}
-			Debug(_log, "Setting baud rate to %d", _baudRate_Hz);
-			_rs232Port.setBaudRate(_baudRate_Hz);
-			_stateChanged = true;
-			_preOpenDelayTimeOut = 0;
-		}
-		else
-		{
-			_preOpenDelayTimeOut = QDateTime::currentMSecsSinceEpoch() + _preOpenDelay;
-			return false;
-		}
-	}
-
-	if (delayAfterConnect_ms > 0)
-	{
-		_blockedForDelay = true;
-		QTimer::singleShot(delayAfterConnect_ms, this, SLOT(unblockAfterDelay()));
-		Debug(_log, "Device blocked for %d ms", delayAfterConnect_ms);
-	}
-
-	return _rs232Port.isOpen();
-}
-
 
 int ProviderRs232::writeBytes(const qint64 size, const uint8_t * data)
 {
+	//Debug(_log, "ProviderRs232::writeBytes, _blockedForDelay [%d], enabled [%d], _deviceReady [%d]", _blockedForDelay, this->enabled(), _deviceReady);
 	if (! _blockedForDelay)
 	{
 		if (!_rs232Port.isOpen())
 		{
+			Debug(_log, "!_rs232Port.isOpen()");
+
 			return tryOpen(5000) ? 0 : -1;
 		}
 
@@ -256,6 +301,9 @@ int ProviderRs232::writeBytes(const qint64 size, const uint8_t * data)
 		_blockedForDelay = true;
 		_bytesToWrite = size;
 		qint64 bytesWritten = _rs232Port.write(reinterpret_cast<const char*>(data), size);
+
+		//Debug(_log, "bytesWritten [%d] [%d]", bytesWritten, _rs232Port.error() );
+
 		if (bytesWritten == -1 || bytesWritten != size)
 		{
 			Warning(_log,"failed writing data");
@@ -266,6 +314,7 @@ int ProviderRs232::writeBytes(const qint64 size, const uint8_t * data)
 	}
 	else
 	{
+		//Debug(_log, "_blockedForDelay");
 		_frameDropCounter++;
 	}
 
@@ -274,7 +323,7 @@ int ProviderRs232::writeBytes(const qint64 size, const uint8_t * data)
 
 void ProviderRs232::writeTimeout()
 {
-	//Error(_log, "Timeout on write data to %s", _deviceName.toLocal8Bit().constData());
+	Error(_log, "Timeout on write data to %s", _deviceName.toLocal8Bit().constData());
 	QString errortext = QString ("Timeout on write data to %1").arg(_deviceName);
 	setInError( errortext );
 	close();
@@ -282,5 +331,26 @@ void ProviderRs232::writeTimeout()
 
 void ProviderRs232::unblockAfterDelay()
 {
+	Debug(_log, "ProviderRs232::unblockAfterDelay");
 	_blockedForDelay = false;
 }
+
+//int ProviderRs232::switchOn()
+//{
+//	Debug(_log, "ProviderRs232::switchOn(), enabled [%d], _deviceReady [%d]", this->enabled(), _deviceReady);
+
+//	int rc = LedDevice::switchOff();
+
+//	Debug(_log, "ProviderRs232::switchOn() [%d]", rc);
+//	return rc;
+//}
+
+
+//int ProviderRs232::switchOff()
+//{
+//	Debug(_log, "ProviderRs232::switchOff(), enabled [%d], _deviceReady [%d]", this->enabled(), _deviceReady);
+//	int rc = LedDevice::switchOff();
+//	Debug(_log, "ProviderRs232::switchOff [%d]", rc);
+//	return 0;
+//}
+

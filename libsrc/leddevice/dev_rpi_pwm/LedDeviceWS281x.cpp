@@ -79,7 +79,7 @@ bool LedDeviceWS281x::init(const QJsonObject &deviceConfig)
 	return isInitOK;
 }
 
-void LedDeviceWS281x::close()
+int LedDeviceWS281x::close()
 {
 	LedDevice::close();
 

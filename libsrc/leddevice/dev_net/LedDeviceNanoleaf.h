@@ -44,10 +44,10 @@ public:
 	static LedDevice* construct(const QJsonObject &deviceConfig);
 
 	/// Switch the device on
-	virtual int switchOn() override;
+	virtual bool switchOn() override;
 
 	/// Switch the device off
-	virtual int switchOff() override;
+	virtual bool switchOff() override;
 
 protected:
 
@@ -103,7 +103,7 @@ private:
 	///
 	/// @return True, if Nanoleaf device was found
 	///
-	bool discoverNanoleafDevice();
+	bool discoverDevice();
 
 	///
 	/// Change Nanoleaf device to External Control (UDP) mode

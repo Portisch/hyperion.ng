@@ -113,7 +113,7 @@ int LedDeviceHyperionUsbasp::open()
 	return retval;
 }
 
-void LedDeviceHyperionUsbasp::close()
+int LedDeviceHyperionUsbasp::close()
 {
 	LedDevice::close();
 

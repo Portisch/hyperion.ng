@@ -37,7 +37,7 @@ void ComponentRegister::setNewComponentState(const hyperion::Components comp, co
 		_componentStates[comp] = activated;
 		// emit component has changed state
 	 	emit updatedComponentState(comp, activated);
-		emit _hyperion->compStateChangeRequest(comp, activated);
+		//emit _hyperion->compStateChangeRequest(comp, activated);
 	}
 }
 
@@ -50,6 +50,8 @@ void ComponentRegister::handleCompStateChangeRequest(const hyperion::Components 
 		{
 			Debug(_log,"Disable Hyperion, store current component states");
 			for(const auto comp : _componentStates)
+
+			//for (std::map<hyperion::Components, bool>::reverse_iterator comp = _componentStates.rbegin(); comp != _componentStates.rend(); ++comp)
 			{
 				// save state
 				_prevComponentStates.emplace(comp.first, comp.second);

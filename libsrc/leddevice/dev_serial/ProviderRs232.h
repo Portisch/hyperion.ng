@@ -33,19 +33,19 @@ public:
 	///
 	virtual ~ProviderRs232() override;
 
-	///
-	/// Opens and configures the output device
-	///
-	/// @return Zero on succes else negative
-	///
-	int open() override;
+//	/// Switch the device on
+//	virtual int switchOn() override;
+
+//	/// Switch the device off
+//	virtual int switchOff() override;
 
 public slots:
+
 	///
-	/// Closes the output device.
+	/// Stops the output device.
 	/// Includes switching-off the device and stopping refreshes
 	///
-	virtual void close() override;
+	virtual void stop() override;
 
 private slots:
 
@@ -70,7 +70,19 @@ protected:
 	 */
 	int writeBytes(const qint64 size, const uint8_t *data);
 
-	void closeDevice();
+	///
+	/// Opens the output device
+	///
+	/// @return Zero on succes (i.e. device is ready) else negative
+	///
+	virtual int open() override;
+
+	///
+	/// Closes the output device.
+	///
+	/// @return Zero on succes (i.e. device is closed) else negative
+	///
+	virtual int close() override;
 
 	QString findSerialDevice();
 

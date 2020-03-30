@@ -150,7 +150,7 @@ int LedDeviceLightpack::open()
 	return retval;
 }
 
-void LedDeviceLightpack::close()
+int LedDeviceLightpack::close()
 {
 	LedDevice::close();
 
@@ -315,9 +315,9 @@ int LedDeviceLightpack::write(const ColorRgb * ledValues, int size)
 	return error >= 0 ? 0 : error;
 }
 
-int LedDeviceLightpack::switchOff()
+bool LedDeviceLightpack::switchOff()
 {
-	int rc = LedDevice::switchOff();
+	bool rc = LedDevice::switchOff();
 	if ( _deviceReady )
 	{
 		unsigned char buf[1] = {CMD_OFF_ALL};

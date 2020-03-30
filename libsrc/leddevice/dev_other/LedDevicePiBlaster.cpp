@@ -122,7 +122,7 @@ int LedDevicePiBlaster::open()
 	return retval;
 }
 
-void LedDevicePiBlaster::close()
+int LedDevicePiBlaster::close()
 {
 	LedDevice::close();
 

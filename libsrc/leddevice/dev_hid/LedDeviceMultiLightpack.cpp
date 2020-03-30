@@ -119,14 +119,14 @@ int LedDeviceMultiLightpack::write(const std::vector<ColorRgb> &ledValues)
 	return 0;
 }
 
-int LedDeviceMultiLightpack::switchOff()
+bool LedDeviceMultiLightpack::switchOff()
 {
 	for (LedDeviceLightpack * device : _lightpacks)
 	{
 		device->switchOff();
 	}
 
-	return 0;
+	return true;
 }
 
 QStringList LedDeviceMultiLightpack::getLightpackSerials()
