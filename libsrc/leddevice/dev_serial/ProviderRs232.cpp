@@ -170,7 +170,7 @@ void ProviderRs232::setInError(const QString& errorMsg)
 
 int ProviderRs232::writeBytes(const qint64 size, const uint8_t * data)
 {
-	Debug(_log, "enabled [%d], _deviceReady [%d], _frameDropCounter [%d]", this->enabled(), _deviceReady, _frameDropCounter);
+	//Debug(_log, "enabled [%d], _deviceReady [%d], _frameDropCounter [%d]", this->enabled(), _deviceReady, _frameDropCounter);
 
 	int rc = 0;
 	if (!_rs232Port.isOpen())
@@ -224,6 +224,6 @@ int ProviderRs232::writeBytes(const qint64 size, const uint8_t * data)
 		}
 	}
 
-	Debug(_log, "[%d], enabled [%d], _deviceReady [%d]", rc, this->enabled(), _deviceReady);
+	//Debug(_log, "[%d], enabled [%d], _deviceReady [%d]", rc, this->enabled(), _deviceReady);
 	return rc;
 }
