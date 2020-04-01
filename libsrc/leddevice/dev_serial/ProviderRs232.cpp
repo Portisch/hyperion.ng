@@ -218,10 +218,6 @@ int ProviderRs232::writeBytes(const qint64 size, const uint8_t * data)
 				rc = -1;
 			}
 		}
-		else
-		{
-			Debug(_log, "bytesWritten [%d], _rs232Port.error() [%d], %s", bytesWritten, _rs232Port.error(), _rs232Port.error() == QSerialPort::NoError ? "No Error" : QSTRING_CSTR(_rs232Port.errorString()) );
-		}
 	}
 
 	//Debug(_log, "[%d], enabled [%d], _deviceReady [%d]", rc, this->enabled(), _deviceReady);
