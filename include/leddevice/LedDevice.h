@@ -157,7 +157,8 @@ protected:
 	virtual int write(const std::vector<ColorRgb>& ledValues) = 0;
 
 	///
-	/// Writes "BLACK" to the output stream
+	/// Writes "BLACK" to the output stream,
+	/// even if the device is not in enabled state (allowing to have a defined state during device switch-off)
 	///
 	/// @return Zero on success else negative
 	///

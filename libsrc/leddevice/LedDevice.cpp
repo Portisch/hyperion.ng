@@ -180,7 +180,7 @@ int LedDevice::updateLeds(const std::vector<ColorRgb>& ledValues)
 {
 	//std::cout << "LedDevice::updateLeds(), _enabled [" << _enabled << "], _deviceReady [" << _deviceReady << "], _deviceInError [" << _deviceInError << "]" << std::endl;
 	int retval = 0;
-	if ( !_deviceReady || _deviceInError )
+	if (  !enabled() || !_deviceReady || _deviceInError)
 	{
 		//std::cout << "LedDevice::updateLeds(), LedDevice NOT ready!" <<  std::endl;
 		return -1;
@@ -216,8 +216,20 @@ int LedDevice::updateLeds(const std::vector<ColorRgb>& ledValues)
 
 int LedDevice::writeBlack()
 {
-	Debug(_log, "");
-	return _deviceReady ? updateLeds(std::vector<ColorRgb>(static_cast<unsigned long>(_ledCount), ColorRgb::BLACK )) : -1;
+	Debug(_log, "enabled [%d], _deviceReady [%d]", this->enabled(), _deviceReady);
+	int rc = -1;
+
+	if ( _latchTime_ms > 0 )
+	{
+		// Wait latchtime before writing black
+		QEventLoop loop;
+		QTimer::singleShot( _latchTime_ms, &loop, SLOT( quit() ) );
+		loop.exec();
+	}
+	rc = write(std::vector<ColorRgb>(static_cast<unsigned long>(_ledCount), ColorRgb::BLACK ));
+
+	Debug(_log, "[%d]", rc);
+	return rc;
 }
 
 bool LedDevice::switchOn()
@@ -229,8 +241,11 @@ bool LedDevice::switchOn()
 		_deviceInError = false;
 		if ( open() < 0 )
 		{
-			setInError("switchOn - openDevice");
 			rc = false;
+		}
+		else
+		{
+			_enabled = true;
 		}
 	}
 
@@ -241,18 +256,15 @@ bool LedDevice::switchOn()
 bool LedDevice::switchOff()
 {
 	Debug(_log, "");
-	bool rc = true;
+	// Disbale device to ensure no updates are wriiten processed
+	_enabled = false;
 
-	// Stop refresh timer to ensure that "write Black" is executed
 	this->stopRefreshTimer();
-	if ( _latchTime_ms > 0 )
-	{
-		// Wait latchtime before writing black
-		QEventLoop loop;
-		QTimer::singleShot( _latchTime_ms, &loop, SLOT( quit() ) );
-		loop.exec();
-	}
+
+	// Write a final "Black" to have a defined outcome
 	writeBlack();
+
+	bool rc = true;
 	if ( close() < 0 )
 	{
 		rc = false;
@@ -280,8 +292,8 @@ int LedDevice::rewriteLeds()
 
 	if ( _deviceReady && _enabled )
 	{
-		qint64 elapsedTime = QDateTime::currentMSecsSinceEpoch() - _last_write_time;
-		std::cout << "LedDevice::rewriteLeds(): Rewrite Leds now, elapsedTime [" << elapsedTime << "] ms" << std::endl;
+//		qint64 elapsedTime = QDateTime::currentMSecsSinceEpoch() - _last_write_time;
+//		std::cout << "LedDevice::rewriteLeds(): Rewrite Leds now, elapsedTime [" << elapsedTime << "] ms" << std::endl;
 //		//:TESTING: Inject "white" output records to differentiate from normal writes
 //		_last_ledValues.clear();
 //		_last_ledValues.resize(static_cast<unsigned long>(_ledCount), ColorRgb::WHITE);
