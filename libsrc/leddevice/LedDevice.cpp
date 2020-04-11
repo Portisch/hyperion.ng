@@ -1,5 +1,6 @@
 #include <leddevice/LedDevice.h>
 #include <sstream>
+#include <unistd.h>
 
 //QT include
 #include <QResource>
@@ -226,6 +227,8 @@ int LedDevice::writeBlack()
 		QTimer::singleShot( _latchTime_ms, &loop, SLOT( quit() ) );
 		loop.exec();
 	}
+
+	usleep(20 * 1000);
 	rc = write(std::vector<ColorRgb>(static_cast<unsigned long>(_ledCount), ColorRgb::BLACK ));
 
 	Debug(_log, "[%d]", rc);
